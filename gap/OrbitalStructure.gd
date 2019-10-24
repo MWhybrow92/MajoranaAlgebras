@@ -57,6 +57,7 @@ BindGlobal("OrbitalStructureType", NewType(OrbitalStructureFamily, IsOrbitalStru
 DeclareGlobalFunction( "OrbitalStructure" );
 DeclareGlobalFunction( "OS_OrbitRepresentative" );
 DeclareGlobalFunction( "OS_CanonisingElement" );
+DeclareGlobalFunction( "OS_CanonisingElement2" );
 DeclareGlobalFunction( "OS_CanonisingElementAndRepresentative" );
 DeclareGlobalFunction( "OS_StabilizerOf" );
 

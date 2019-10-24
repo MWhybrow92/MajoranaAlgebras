@@ -35,6 +35,7 @@ function(gens, Omega, Act)
     # of G that maps said point to the orbit rep
     # Really what we want is a schreier trees/vectors here
     res.orbreps := [];
+    res.orbrepact := [];
     res.orbnums := HashMap(Size(Omega));
     res.orbstabs := [];
     for o in [1..Length(res.orbits)] do
@@ -45,6 +46,7 @@ function(gens, Omega, Act)
         res.orbstabs[o].orbits := Orbits(res.orbstabs[o].group, Omega, Act);
         res.orbstabs[o].orbnums := HashMap(Size(Omega));
         res.orbstabs[o].orbreps := [];
+        res.orbstabs[o].orbrepact := [];
         for so in [1..Length(res.orbstabs[o].orbits)] do
             Add(res.orbstabs[o].orbreps, res.orbstabs[o].orbits[so][1]);
             for i in res.orbstabs[o].orbits[so] do
@@ -80,19 +82,31 @@ end);
 
 InstallGlobalFunction( OS_CanonisingElement,
 function(os, pt)
-    return RepresentativeAction( os!.group
-                              , pt
-                              , os!.orbreps[os!.orbnums[pt]]
-                              , os!.act);
+    if not IsBound(os!.orbrepact[pt]) then
+        os!.orbrepact[pt] := RepresentativeAction( os!.group
+                            , pt
+                            , os!.orbreps[os!.orbnums[pt]]
+                            , os!.act);
+    fi;
+    return os!.orbrepact[pt];
 end);
+
+InstallGlobalFunction( OS_CanonisingElement2,
+function(os, pt, fo, so)
+    if not IsBound(os!.orbstabs[fo].orbrepact[pt]) then
+        os!.orbstabs[fo].orbrepact[pt] := RepresentativeAction( os!.orbstabs[fo].group
+                                                              , pt
+                                                              , os!.orbstabs[fo].orbreps[so]
+                                                              , os!.act);
+    fi;
+    return os!.orbstabs[fo].orbrepact[pt];
+end);
+
 
 InstallGlobalFunction( OS_CanonisingElementAndRepresentative,
 function(os, pt)
     return [ os!.orbreps[os!.orbnums[pt]]
-          , RepresentativeAction( os!.group
-                                , pt
-                                , os!.orbreps[os!.orbnums[pt]]
-                                , os!.act) ];
+           , OS_CanonisingElement(os, pt) ];
 end);
 
 InstallGlobalFunction( OS_StabilizerOf,
@@ -108,7 +122,7 @@ function(os, pair)
     # orbital that contains <pair>.
 
     fo := os!.orbnums[pair[1]];
-    p := RepresentativeAction(os!.group, pair[1], os!.orbreps[fo], os!.act );
+    p := OS_CanonisingElement(os, pair[1]);
     so := os!.orbstabs[fo].orbnums[os!.act(pair[2], p)];
     return [ os!.orbreps[fo], os!.orbstabs[fo].orbreps[so] ];
 end);
@@ -132,10 +146,9 @@ function(os, pair)
     local fo, so, p1, p2;
 
     fo := os!.orbnums[pair[1]];
-    p1 := RepresentativeAction(os!.group, pair[1], os!.orbreps[fo], os!.act);
+    p1 := OS_CanonisingElement(os, pair[1]);
     so := os!.orbstabs[fo].orbnums[os!.act(pair[2], p1)];
-    p2 := RepresentativeAction( os!.orbstabs[fo].group, os!.act(pair[2], p1)
-                               , os!.orbstabs[fo].orbreps[so], os!.act);
+    p2 := OS_CanonisingElement2(os, os!.act(pair[2], p1), fo, so);
 
     return p1 * p2;
 end);
@@ -164,8 +177,9 @@ function(os, p)
 
     if r1 = r2 then
         # a and b are in the same orbit
-        p1 := RepresentativeAction(os!.group, a, r1, os!.act);
-        p2 := RepresentativeAction(os!.group, b, r1, os!.act);
+        p1 := OS_CanonisingElement(os, a);
+        # RepresentativeAction(os!.group, a, r1, os!.act);
+        p2 := OS_CanonisingElement(os, b);
 
         tmp := [r1, os!.act(b,p1)];
         ob := os!.orbstabs[oa].orbnums[tmp[2]];
@@ -185,7 +199,7 @@ function(os, p)
     fi;
 
     # Move a to the smaller rep
-    p1 := RepresentativeAction(os!.group, a, r1, os!.act);
+    p1 := OS_CanonisingElement(os, a);
     # Now look in the point stabiliser of r1 what
     # element we can map b^p1 to
     ob := os!.orbstabs[oa].orbnums[os!.act(b, p1)];
